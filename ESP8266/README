@@ -1,0 +1,3 @@
+simple_esp8266是简单的使用esp模块，修改了uart串口文件，一次性接受固定时间长度的数据。
+ESP8266_TCP_UDP里UDP和TCP_SERVER模式都没经过测试。
+ 
