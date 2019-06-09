@@ -1,0 +1,152 @@
+C51 COMPILER V9.54   IIC                                                                   07/01/2016 12:06:19 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE IIC
+OBJECT MODULE PLACED IN .\Objects\iic.obj
+COMPILER INVOKED BY: E:\MDK\keil\keilmdk\C51\BIN\C51.EXE iic.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Listi
+                    -ngs\iic.lst) TABS(2) OBJECT(.\Objects\iic.obj)
+
+line level    source
+
+   1          #include "iic.h"
+   2          #include <INTRINS.H>
+   3          #include "mpu6050.h"
+   4          //**************************************
+   5          //延时5微秒
+   6          //**************************************
+   7          void Delay5us()
+   8          {
+   9   1        _nop_();
+  10   1        _nop_();
+  11   1        _nop_();
+  12   1        _nop_();
+  13   1        _nop_();
+  14   1      }
+  15          //**************************************
+  16          //I2C起始信号
+  17          //**************************************
+  18          void I2C_Start()
+  19          {
+  20   1          SDA = 1;                    //拉高数据线
+  21   1          SCL = 1;                    //拉高时钟线
+  22   1          Delay5us();                 //延时
+  23   1          SDA = 0;                    //产生下降沿
+  24   1          Delay5us();                 //延时
+  25   1          SCL = 0;                    //拉低时钟线
+  26   1      }
+  27          //**************************************
+  28          //I2C停止信号
+  29          //**************************************
+  30          void I2C_Stop()
+  31          {
+  32   1          SDA = 0;                    //拉低数据线
+  33   1          SCL = 1;                    //拉高时钟线
+  34   1          Delay5us();                 //延时
+  35   1          SDA = 1;                    //产生上升沿
+  36   1          Delay5us();                 //延时
+  37   1      }
+  38          //**************************************
+  39          //I2C发送应答信号
+  40          //入口参数:ack (0:ACK 1:NAK)
+  41          //**************************************
+  42          void I2C_SendACK(bit ack)
+  43          {
+  44   1          SDA = ack;                  //写应答信号
+  45   1          SCL = 1;                    //拉高时钟线
+  46   1          Delay5us();                 //延时
+  47   1          SCL = 0;                    //拉低时钟线
+  48   1          Delay5us();                 //延时
+  49   1      }
+  50          //**************************************
+  51          //I2C接收应答信号
+  52          //**************************************
+  53          bit I2C_RecvACK()
+  54          {
+C51 COMPILER V9.54   IIC                                                                   07/01/2016 12:06:19 PAGE 2   
+
+  55   1          SCL = 1;                    //拉高时钟线
+  56   1          Delay5us();                 //延时
+  57   1          CY = SDA;                   //读应答信号
+  58   1          SCL = 0;                    //拉低时钟线
+  59   1          Delay5us();                 //延时
+  60   1          return CY;
+  61   1      }
+  62          //**************************************
+  63          //向I2C总线发送一个字节数据
+  64          //**************************************
+  65          void I2C_SendByte(unsigned char dat)
+  66          {
+  67   1          unsigned char i;
+  68   1          for (i=0; i<8; i++)         //8位计数器
+  69   1          {
+  70   2              dat <<= 1;              //移出数据的最高位
+  71   2              SDA = CY;               //送数据口
+  72   2              SCL = 1;                //拉高时钟线
+  73   2              Delay5us();             //延时
+  74   2              SCL = 0;                //拉低时钟线
+  75   2              Delay5us();             //延时
+  76   2          }
+  77   1          I2C_RecvACK();
+  78   1      }
+  79          //**************************************
+  80          //从I2C总线接收一个字节数据
+  81          //**************************************
+  82          unsigned char I2C_RecvByte()
+  83          {
+  84   1          unsigned char i;
+  85   1          unsigned char dat = 0;
+  86   1          SDA = 1;                    //使能内部上拉,准备读取数据,
+  87   1          for (i=0; i<8; i++)         //8位计数器
+  88   1          {
+  89   2              dat <<= 1;
+  90   2              SCL = 1;                //拉高时钟线
+  91   2              Delay5us();             //延时
+  92   2              dat |= SDA;             //读数据               
+  93   2              SCL = 0;                //拉低时钟线
+  94   2              Delay5us();             //延时
+  95   2          }
+  96   1          return dat;
+  97   1      }
+  98          //**************************************
+  99          //向I2C设备写入一个字节数据
+ 100          //**************************************
+ 101          void Single_WriteI2C(unsigned char REG_Address,unsigned char REG_data)
+ 102          {
+ 103   1          I2C_Start();                  //起始信号
+ 104   1          I2C_SendByte(SlaveAddress);   //发送设备地址+写信号
+ 105   1          I2C_SendByte(REG_Address);    //内部寄存器地址，
+ 106   1          I2C_SendByte(REG_data);       //内部寄存器数据，
+ 107   1          I2C_Stop();                   //发送停止信号
+ 108   1      }
+ 109          //**************************************
+ 110          //从I2C设备读取一个字节数据
+ 111          //**************************************
+ 112          unsigned char Single_ReadI2C(unsigned char REG_Address)
+ 113          {
+ 114   1        unsigned char REG_data;
+ 115   1        I2C_Start();                   //起始信号
+ 116   1        I2C_SendByte(SlaveAddress);    //发送设备地址+写信号
+C51 COMPILER V9.54   IIC                                                                   07/01/2016 12:06:19 PAGE 3   
+
+ 117   1        I2C_SendByte(REG_Address);     //发送存储单元地址，从0开始  
+ 118   1        I2C_Start();                   //起始信号
+ 119   1        I2C_SendByte(SlaveAddress+1);  //发送设备地址+读信号
+ 120   1        REG_data=I2C_RecvByte();       //读出寄存器数据
+ 121   1        I2C_SendACK(1);                //接收应答信号
+ 122   1        I2C_Stop();                    //停止信号
+ 123   1        return REG_data;
+ 124   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    173    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----    ----
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----       1
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

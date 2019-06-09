@@ -1,0 +1,11 @@
+".\Objects\STARTUP.obj",
+".\Objects\mpu6050.obj",
+".\Objects\iic.obj",
+".\Objects\main.obj",
+".\Objects\pwm.obj",
+".\Objects\pid.obj",
+".\Objects\12864.obj",
+".\Objects\keyboard.obj",
+".\Objects\show.obj" 
+TO ".\Objects\Blanced_System" 
+PRINT(".\Listings\Blanced_System.m51") RAMSIZE(256) 

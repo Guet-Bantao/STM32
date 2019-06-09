@@ -1,0 +1,218 @@
+C51 COMPILER V9.54   12864                                                                 07/01/2016 12:06:19 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE 12864
+OBJECT MODULE PLACED IN .\Objects\12864.obj
+COMPILER INVOKED BY: E:\MDK\keil\keilmdk\C51\BIN\C51.EXE 12864.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND PRINT(.\Lis
+                    -tings\12864.lst) TABS(2) OBJECT(.\Objects\12864.obj)
+
+line level    source
+
+   1          #include "12864.h"
+   2          #include "LIB12864.h"
+   3          #include "keyboard.h"
+   4          
+   5          #define high 1
+   6          #define low 0
+   7          
+   8          #define Brightness  0xCF 
+   9          #define X_WIDTH   128
+  10          #define Y_WIDTH   64
+  11          
+  12          /*********************OLED驱动程序用的延时程序************************************/
+  13          void delay(unsigned int z)
+  14          {
+  15   1        unsigned int x,y;
+  16   1        for(x=z;x>0;x--)
+  17   1          for(y=110;y>0;y--);
+  18   1      }
+  19          
+  20          /**********************************************
+  21          //IIC Start
+  22          **********************************************/
+  23          void IIC_Start()
+  24          {
+  25   1         SCL12864 = high;   
+  26   1         SDA12864 = high;
+  27   1         SDA12864 = low;
+  28   1         SCL12864 = low;
+  29   1      }
+  30          
+  31          /**********************************************
+  32          //IIC Stop
+  33          **********************************************/
+  34          void IIC_Stop()
+  35          {
+  36   1         SCL12864 = low;
+  37   1         SDA12864 = low;
+  38   1         SCL12864 = high;
+  39   1         SDA12864 = high;
+  40   1      }
+  41          
+  42          /**********************************************
+  43          // 通过I2C总线写一个字节
+  44          **********************************************/
+  45          void Write_IIC_Byte(unsigned char IIC_Byte)
+  46          {
+  47   1        unsigned char i;
+  48   1        for(i=0;i<8;i++)
+  49   1        {
+  50   2          if(IIC_Byte & 0x80)
+  51   2            SDA12864=high;
+  52   2          else
+  53   2            SDA12864=low;
+  54   2          SCL12864=high;
+C51 COMPILER V9.54   12864                                                                 07/01/2016 12:06:19 PAGE 2   
+
+  55   2          SCL12864=low;
+  56   2          IIC_Byte<<=1;
+  57   2        }
+  58   1        SDA12864=1;
+  59   1        SCL12864=1;
+  60   1        SCL12864=0;
+  61   1      }
+  62          
+  63          /*********************OLED写数据************************************/ 
+  64          void OLED_WrDat(unsigned char IIC_Data)
+  65          {
+  66   1        IIC_Start();
+  67   1        Write_IIC_Byte(0x78);
+  68   1        Write_IIC_Byte(0x40);     //write data
+  69   1        Write_IIC_Byte(IIC_Data);
+  70   1        IIC_Stop();
+  71   1      }
+  72          /*********************OLED写命令************************************/
+  73          void OLED_WrCmd(unsigned char IIC_Command)
+  74          {
+  75   1        IIC_Start();
+  76   1        Write_IIC_Byte(0x78);            //Slave address,SA0=0
+  77   1        Write_IIC_Byte(0x00);     //write command
+  78   1        Write_IIC_Byte(IIC_Command);
+  79   1        IIC_Stop();
+  80   1      }
+  81          /*********************OLED 设置坐标************************************/
+  82          void OLED_Set_Pos(unsigned char x, unsigned char y) 
+  83          { 
+  84   1        OLED_WrCmd(0xb0+y);
+  85   1        OLED_WrCmd(((x&0xf0)>>4)|0x10);
+  86   1        OLED_WrCmd((x&0x0f)|0x01);
+  87   1      } 
+  88          /*********************OLED全屏************************************/
+  89          void OLED_Fill(unsigned char bmp_dat) 
+  90          {
+  91   1        unsigned char y,x;
+  92   1        for(y=0;y<8;y++)
+  93   1        {
+  94   2          OLED_WrCmd(0xb0+y);
+  95   2          OLED_WrCmd(0x01);
+  96   2          OLED_WrCmd(0x10);
+  97   2          for(x=0;x<X_WIDTH;x++)
+  98   2          OLED_WrDat(bmp_dat);
+  99   2        }
+ 100   1      }
+ 101          
+ 102          /*********************OLED复位************************************/
+ 103          void OLED_CLS(void)
+ 104          {
+ 105   1        unsigned char y,x;
+ 106   1        for(y=0;y<8;y++)
+ 107   1        {
+ 108   2          OLED_WrCmd(0xb0+y);
+ 109   2          OLED_WrCmd(0x01);
+ 110   2          OLED_WrCmd(0x10);
+ 111   2          for(x=0;x<X_WIDTH;x++)
+ 112   2          OLED_WrDat(0);
+ 113   2        }
+ 114   1      }
+ 115          /*********************OLED初始化************************************/
+ 116          void OLED_Init(void)
+C51 COMPILER V9.54   12864                                                                 07/01/2016 12:06:19 PAGE 3   
+
+ 117          {
+ 118   1        delay(500);//初始化之前的延时很重要！
+ 119   1        OLED_WrCmd(0xae);//--turn off oled panel
+ 120   1        OLED_WrCmd(0x00);//---set low column address
+ 121   1        OLED_WrCmd(0x10);//---set high column address
+ 122   1        OLED_WrCmd(0x40);//--set start line address  Set Mapping RAM Display Start Line (0x00~0x3F)
+ 123   1        OLED_WrCmd(0x81);//--set contrast control register
+ 124   1        OLED_WrCmd(Brightness); // Set SEG Output Current Brightness
+ 125   1        OLED_WrCmd(0xa1);//--Set SEG/Column Mapping     0xa0左右反置 0xa1正常
+ 126   1        OLED_WrCmd(0xc8);//Set COM/Row Scan Direction   0xc0上下反置 0xc8正常
+ 127   1        OLED_WrCmd(0xa6);//--set normal display
+ 128   1        OLED_WrCmd(0xa8);//--set multiplex ratio(1 to 64)
+ 129   1        OLED_WrCmd(0x3f);//--1/64 duty
+ 130   1        OLED_WrCmd(0xd3);//-set display offset  Shift Mapping RAM Counter (0x00~0x3F)
+ 131   1        OLED_WrCmd(0x00);//-not offset
+ 132   1        OLED_WrCmd(0xd5);//--set display clock divide ratio/oscillator frequency
+ 133   1        OLED_WrCmd(0x80);//--set divide ratio, Set Clock as 100 Frames/Sec
+ 134   1        OLED_WrCmd(0xd9);//--set pre-charge period
+ 135   1        OLED_WrCmd(0xf1);//Set Pre-Charge as 15 Clocks & Discharge as 1 Clock
+ 136   1        OLED_WrCmd(0xda);//--set com pins hardware configuration
+ 137   1        OLED_WrCmd(0x12);
+ 138   1        OLED_WrCmd(0xdb);//--set vcomh
+ 139   1        OLED_WrCmd(0x40);//Set VCOM Deselect Level
+ 140   1        OLED_WrCmd(0x20);//-Set Page Addressing Mode (0x00/0x01/0x02)
+ 141   1        OLED_WrCmd(0x02);//
+ 142   1        OLED_WrCmd(0x8d);//--set Charge Pump enable/disable
+ 143   1        OLED_WrCmd(0x14);//--set(0x10) disable
+ 144   1        OLED_WrCmd(0xa4);// Disable Entire Display On (0xa4/0xa5)
+ 145   1        OLED_WrCmd(0xa6);// Disable Inverse Display On (0xa6/a7) 
+ 146   1        OLED_WrCmd(0xaf);//--turn on oled panel
+ 147   1        OLED_Fill(0x00); //初始清屏
+ 148   1        OLED_Set_Pos(0,0);
+ 149   1      } 
+ 150          
+ 151          /*******************功能描述：显示8*16一组标准ASCII字符串  显示的坐标（x,y），y为页范围0～7***************
+             -*/
+ 152          void OLED_P8x16Str(unsigned char x, y,unsigned char ch[])
+ 153          {
+ 154   1        unsigned char c=0,i=0,j=0;
+ 155   1        while (ch[j]!='\0')
+ 156   1        {
+ 157   2          c =ch[j]-32;//计算ch[j]在A起 数多少个到ch[j]
+ 158   2          if(x>120){x=0;y++;}
+ 159   2          OLED_Set_Pos(x,y);
+ 160   2          for(i=0;i<8;i++)
+ 161   2          OLED_WrDat(F8X16[c*16+i]);
+ 162   2          OLED_Set_Pos(x,y+1);
+ 163   2          for(i=8;i<16;i++)
+ 164   2          OLED_WrDat(F8X16[c*16+i]);
+ 165   2          x+=8;
+ 166   2          j++;
+ 167   2        }
+ 168   1      }
+ 169          /*****************功能描述：显示16*16点阵  显示的坐标（x,y），y为页范围0～7****************************/
+ 170          void OLED_P16x16Ch(unsigned char x, y, N)
+ 171          {
+ 172   1        unsigned char wm=0;
+ 173   1        unsigned int adder=32*N;
+ 174   1        OLED_Set_Pos(x , y);
+ 175   1        for(wm = 0;wm < 16;wm++)
+ 176   1        {
+ 177   2          OLED_WrDat(F16x16[adder]);
+C51 COMPILER V9.54   12864                                                                 07/01/2016 12:06:19 PAGE 4   
+
+ 178   2          adder += 1;
+ 179   2        }
+ 180   1        OLED_Set_Pos(x,y + 1);
+ 181   1        for(wm = 0;wm < 16;wm++)
+ 182   1        {
+ 183   2          OLED_WrDat(F16x16[adder]);
+ 184   2          adder += 1;
+ 185   2        }       
+ 186   1      }
+ 187          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    576    ----
+   CONSTANT SIZE    =   2288    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----      10
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
