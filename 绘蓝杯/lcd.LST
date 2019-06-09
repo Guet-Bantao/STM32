@@ -1,0 +1,570 @@
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 1   
+
+
+C51 COMPILER V9.54, COMPILATION OF MODULE LCD
+OBJECT MODULE PLACED IN lcd.OBJ
+COMPILER INVOKED BY: E:\MDK\keil\keilmdk\C51\BIN\C51.EXE lcd.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*==========================================================
+   2           * 程序名称：基于定时器的1602简易时钟   
+   3           * 开发人员：桂林电子科技大学 创新学院 风筝
+   4           * 开发环境：keil5
+   5           * 创建时间：2015/12/02  15:41:10
+   6           * 修改时间：
+   7           * 功能说明：历时6天
+   8           *                      RS->P1^1 RW->P1^2 E->P1^3
+   9           *==========================================================*/
+  10          
+  11          #include<reg52.h>
+  12          #define lcd P0
+  13          
+  14          sbit rs=P1^1 ;
+  15          sbit rw=P1^2 ;
+  16          sbit e=P1^3      ;
+  17          sbit buzz=P3^7;
+  18          sbit key1=P2^0;
+  19          sbit key2=P2^1;
+  20          sbit key3=P2^2;
+  21          sbit key4=P2^3;
+  22          
+  23          void writecmd(unsigned char cmd);
+  24          void set(unsigned char x,unsigned char y);
+  25          void key();
+  26          void initlcd();
+  27          void count();
+  28          void play();
+  29          void delayms(unsigned int xms);
+  30          void show(unsigned char x,unsigned char y,unsigned char *table);
+  31          void ling();
+  32          
+  33          unsigned char b=0;
+  34          unsigned char c=0;
+  35          unsigned char cnt=0;
+  36          unsigned char k=0;
+  37          unsigned char z=0;
+  38          unsigned char di=0;
+  39          unsigned char table[]="2016-09-17";
+  40          unsigned char table1[]="19-40-56";
+  41          unsigned char code time[]="0123456789" ;
+  42          unsigned char code clock[]="clock";
+  43          unsigned char clock1[]="09-17|20-49"; 
+  44          unsigned char code clock2[]="@"; 
+  45          unsigned char miao=56;
+  46          unsigned char fen=40;
+  47          unsigned char shi=19;
+  48          unsigned char ri=17;
+  49          unsigned char yue=9;
+  50          unsigned int nian=2016;
+  51          unsigned char fena=49;
+  52          unsigned char shia=20;
+  53          unsigned char yuea=9;
+  54          unsigned char ria=17;
+  55          /*unsigned char code T[49][2]={{0,0},
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 2   
+
+  56          {0xF8,0x8B},{0xF8,0xF2},{0xF9,0x5B},{0xF9,0xB7},{0xFA,0x14},{0xFA,0x66},{0xFA,0xB9},{0xFB,0x03},{0xFB,0x4A
+             -},{0xFB,0x8F},{0xFB,0xCF},{0xFC,0x0B},
+  57          {0xFC,0x43},{0xFC,0x78},{0xFC,0xAB},{0xFC,0xDB},{0xFD,0x08},{0xFD,0x33},{0xFD,0x5B},{0xFD,0x81},{0xFD,0xA5
+             -},{0xFD,0xC7},{0xFD,0xE7},{0xFE,0x05},
+  58          {0xFE,0x21},{0xFE,0x3C},{0xFE,0x55},{0xFE,0x6D},{0xFE,0x84},{0xFE,0x99},{0xFE,0xAD},{0xFE,0xC0},{0xFE,0x02
+             -},{0xFE,0xE3},{0xFE,0xF3},{0xFF,0x02},
+  59          {0xFF,0x10},{0xFF,0x1D},{0xFF,0x2A},{0xFF,0x36},{0xFF,0x42},{0xFF,0x4C},{0xFF,0x56},{0xFF,0x60},{0xFF,0x69
+             -},{0xFF,0x71},{0xFF,0x79},{0xFF,0x81}
+  60          };
+  61          unsigned char music[34][2]={{0,4}} ;*/
+  62          
+  63          void main()
+  64          {  
+  65   1                              TMOD=0x01;
+  66   1                              EA=1;
+  67   1                              TH0=(65536-50000)/256;
+  68   1                              TL0=(65536-50000)%256;
+  69   1                              ET0=1;
+  70   1                              TR0=1;
+  71   1                              TH1 = 0xfb;
+  72   1                              TL1 = 0x90;
+  73   1                              ET1=1;
+  74   1                              initlcd();  
+  75   1                              while(1)
+  76   1                              {                               
+  77   2                                      ling();
+  78   2                                      count();
+  79   2                                      play();
+  80   2                                      show(3,0,table);
+  81   2                                      show(2,1,table1);
+  82   2                                      key();                
+  83   2                              }
+  84   1      }
+  85          
+  86          /*==========================================================   
+  87           *函数名称：key()
+  88           *功    能：按键调整时间
+  89           *入口参数：
+  90           *出口参数：
+  91           *说    明：
+  92           *==========================================================*/
+  93          void key()
+  94          {
+  95   1        if(key1==0)
+  96   1                      {
+  97   2                              delayms(10);
+  98   2                              if(key1==0)
+  99   2                              {
+ 100   3                                      k++; 
+ 101   3                                      c++;
+ 102   3                                      while(!key1);
+ 103   3                                      TR0=0;
+ 104   3                                      while (c==1)  
+ 105   3                                              {
+ 106   4                                                      if(key1==0)
+ 107   4                                                              delayms(10);                 
+ 108   4                                                      if(key1==0)      
+ 109   4                                                              { 
+ 110   5                                                                      k++ ;
+ 111   5                                                                      while(!key1);           
+ 112   5                                                              }
+ 113   4                                                      switch(k)
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 3   
+
+ 114   4                                                              {
+ 115   5                                                                      case 1:   set(9,1); writecmd(0x0f);break;
+ 116   5                                                                      case 2:   set(6,1);                break;
+ 117   5                                                                      case 3:   set(3,1);                break;
+ 118   5                                                                      case 4:   set(12,0);               break;
+ 119   5                                                                      case 5:   set(9,0);                break;
+ 120   5                                                                      case 6:   set(6,0);                break;
+ 121   5                                                                      case 7:   TR0=1; b=1;initlcd();show(11,0,clock);
+ 122   5                                                                                                              show(2,1,clock1);k=9;break;
+ 123   5                                                                      case 8:   k=0;c=0;TR0=1;writecmd(0x0c);initlcd(); break;
+ 124   5                                                              }
+ 125   4                                                      while(k==9)                     
+ 126   4                                                              {               //之前这个写if的，改了
+ 127   5                                                                      if(key1==0)
+ 128   5                                                                              {
+ 129   6                                                                                      delayms(10);
+ 130   6                                                                                      if(key1==0)
+ 131   6                                                                                              {
+ 132   7                                                                                                      if(b==4) 
+ 133   7                                                                                                              k=8;
+ 134   7                                                                                                      while(!key1);
+ 135   7                                                                                                      b++;    
+ 136   7                                                    }
+ 137   6                                                                              }
+ 138   5                                                                      switch(b)
+ 139   5                                                                              {       
+ 140   6                                                                                      case 1:   set(12,1); writecmd(0x0f);break;
+ 141   6                                                                                      case 2:   set(9,1);                 break;
+ 142   6                                                                                      case 3:   set(6,1);                 break;
+ 143   6                                                                                      case 4:   set(3,1);                 break;
+ 144   6                                                                              }
+ 145   5                                                                      if(key2==0)                     //按键加
+ 146   5                                                                              {
+ 147   6                                                                                      delayms(10);
+ 148   6                                                                                      if(key2==0)
+ 149   6                                                                                              {
+ 150   7                                                                                                      while(!key2);             //松手检测
+ 151   7                                                                                                      switch(b)
+ 152   7                                                                                                              {
+ 153   8                                                                                                                      case 1: fena++;
+ 154   8                                                                                                                                                      if(fena>=60)
+ 155   8                                                                                                                                                              fena=0;
+ 156   8                                                                                                                                                      clock1[10]=time[fena%10];
+ 157   8                                                                                                                                                      clock1[9]=time[fena/10];  break;
+ 158   8      
+ 159   8                                                                                                                      case 2: shia++;
+ 160   8                                                                                                                                                      if(shia>=24)
+ 161   8                                                                                                                                                              shia=0;
+ 162   8                                                                                                                                                      clock1[7]=time[shia%10];
+ 163   8                                                                                                                                                      clock1[6]=time[shia/10];  break;
+ 164   8                                                                                                                      case 3: ria++;
+ 165   8                                                                                                                                                      if(ria>=32)
+ 166   8                                                                                                                                                              ria=0;
+ 167   8                                                                                                                                                      clock1[4]=time[ria%10];
+ 168   8                                                                                                                                                      clock1[3]=time[ria/10];  break;
+ 169   8                                                                                                                      case 4: yuea++;
+ 170   8                                                                                                                                                      if(yuea>=13)
+ 171   8                                                                                                                                                              yuea=0;
+ 172   8                                                                                                                                                      clock1[1]=time[yuea%10];
+ 173   8                                                                                                                                                      clock1[0]=time[yuea/10];  break;
+ 174   8                                }     
+ 175   7                                  }      
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 4   
+
+ 176   6                              }          
+ 177   5                                                                      if(key3==0)                     //按键减
+ 178   5                                                                              {
+ 179   6                                                                                      delayms(10);
+ 180   6                                                                                      if(key3==0)
+ 181   6                                                                                              {
+ 182   7                                                                                                      while(!key3);             //松手检测            
+ 183   7                                                                                                      switch(b)
+ 184   7                                                                                                              {
+ 185   8                                                                                                                      case 1: fena--;
+ 186   8                                                                                                                                                if(fena==-1)
+ 187   8                                                                                                                                                        fena=59;
+ 188   8                                                                                                                                                clock1[10]=time[fena%10];
+ 189   8                                                                                                                                                clock1[9]=time[fena/10];  break;
+ 190   8                                                                                                                      case 2: shia--;
+ 191   8                                                                                                                                                if(shia==-1)
+ 192   8                                                                                                                                                              shia=23;
+ 193   8                                                                                                                                                      clock1[7]=time[shia%10];
+ 194   8                                                                                                                                                      clock1[6]=time[shia/10];  break;
+ 195   8                                                                                                                      case 3: ria--;
+ 196   8                                                                                                                                                      if(ria==0)
+ 197   8                                                                                                                                                              ria=31;
+ 198   8                                                                                                                                                      clock1[4]=time[ria%10];
+ 199   8                                                                                                                                                      clock1[3]=time[ria/10];  break;
+ 200   8                                                                                                                      case 4: yuea--;
+ 201   8                                                                                                                                                      if(yuea==0)
+ 202   8                                                                                                                                                              yuea=12;
+ 203   8                                                                                                                                                      clock1[1]=time[yuea%10];
+ 204   8                                                                                                                                                      clock1[0]=time[yuea/10];  break;
+ 205   8                                      }       
+ 206   7                                  }
+ 207   6                              }          
+ 208   5                            show(2,1,clock1);              
+ 209   5                                                              }                                       
+ 210   4                                                      if(k!=0)
+ 211   4                                                              {
+ 212   5                                                                      if(key2==0)                     //按键加
+ 213   5                                                                              {
+ 214   6                                                                                      delayms(10);
+ 215   6                                                                                      if(key2==0)
+ 216   6                                                                                              {
+ 217   7                                                                                                      while(!key2);             //松手检测                                            
+ 218   7                                                                                                      switch(k)
+ 219   7                                                                                                              {
+ 220   8                                                                                                                      case 1: miao++;
+ 221   8                                                                                                                                                      if(miao==60)
+ 222   8                                                                                                                                                              miao=0;
+ 223   8                                                                                                                                                      table1[7]=time[miao%10];
+ 224   8                                                                                                                                                      table1[6]=time[miao/10];  break;
+ 225   8                                                                                                                      case 2: fen++;
+ 226   8                                                                                                                                                      if(fen==60)
+ 227   8                                                                                                                                                              fen=0;
+ 228   8                                                                                                                                                      table1[4]=time[fen%10];
+ 229   8                                                                                                                                                      table1[3]=time[fen/10];   break;
+ 230   8                                                                                                                      case 3: shi++;
+ 231   8                                                                                                                                                      if(shi==24)
+ 232   8                                                                                                                                                              shi=0;
+ 233   8                                                                                                                                                      table1[1]=time[shi%10];
+ 234   8                                                                                                                                                      table1[0]=time[shi/10];   break;
+ 235   8                                                                                                                      case 4: ri++;
+ 236   8                                                                                                                                                      if(ri==32)
+ 237   8                                                                                                                                                              ri=0;
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 5   
+
+ 238   8                                                                                                                                                      table[9]=time[ri%10];
+ 239   8                                                                                                                                                      table[8]=time[ri/10];     break;
+ 240   8                                                                                                                      case 5: yue++;
+ 241   8                                                                                                                                                      if(yue==12)
+ 242   8                                                                                                                                                              yue=0;
+ 243   8                                                                                                                                                      table[6]=time[yue%10];
+ 244   8                                                                                                                                                      table[5]=time[yue/10];    break;
+ 245   8                                                                                                                      case 6: nian++;
+ 246   8                                                                                                                                                      table[3]=time[nian%10];
+ 247   8                                                                                                                                                      table[2]=time[nian%100/10];
+ 248   8                                                                                                                                                      table[1]=time[nian/100%10];
+ 249   8                                                                                                                                                      table[0]=time[nian/1000];  break;
+ 250   8      
+ 251   8                                                                                                              }               
+ 252   7                                                                                              }
+ 253   6                                                                              }
+ 254   5                                                               else if(key3==0)                       //按键减
+ 255   5                                                                                              {
+ 256   6                                                                                                      delayms(10);
+ 257   6                                                                                                      if(key3==0)
+ 258   6                                                                                                              {
+ 259   7                                                                                                                      while(!key3);      //松手检测
+ 260   7                                                                                                                      switch(k)
+ 261   7                                                                                                                              {
+ 262   8                                                                                                                                      case 1: miao--;
+ 263   8                                                                                                                                                                      if(miao==-1)
+ 264   8                                                                                                                                                                              miao=59;
+ 265   8                                                                                                                                                                      table1[7]=time[miao%10];
+ 266   8                                                                                                                                                                      table1[6]=time[miao/10];  break;
+ 267   8                                                                                                                                      case 2: fen--;
+ 268   8                                                                                                                                                                      if(fen==-1)
+ 269   8                                                                                                                                                                              fen=59;
+ 270   8                                                                                                                                                                      table1[4]=time[fen%10];
+ 271   8                                                                                                                                                                      table1[3]=time[fen/10];
+ 272   8                                                                                                                                                                                                                                                                                      break;
+ 273   8                                                                                                                                      case 3: shi--;
+ 274   8                                                                                                                                                                      if(shi==-1)
+ 275   8                                                                                                                                                                              shi=23;
+ 276   8                                                                                                                                                                      table1[1]=time[shi%10];
+ 277   8                                                                                                                                                                      table1[0]=time[shi/10];   break;
+ 278   8                                                                                                                                      case 4: ri--;
+ 279   8                                                                                                                                                                      if(ri==0)
+ 280   8                                                                                                                                                                              ri=31;
+ 281   8                                                                                                                                                                      table[9]=time[ri%10];
+ 282   8                                                                                                                                                                      table[8]=time[ri/10];     break;
+ 283   8                                                                                                                                      case 5: yue--;
+ 284   8                                                                                                                                                                      if(yue==0)
+ 285   8                                                                                                                                                                              yue=12;
+ 286   8                                                                                                                                                                      table[6]=time[yue%10];
+ 287   8                                                                                                                                                                      table[5]=time[yue/10];    break;
+ 288   8                                                                                                                                      case 6: nian--;
+ 289   8                                                                                                                                                                      table[3]=time[nian%10];
+ 290   8                                                                                                                                                                      table[2]=time[nian%100/10];
+ 291   8                                                                                                                                                                      table[1]=time[nian/100%10];
+ 292   8                                                                                                                                                                      table[0]=time[nian/1000];  break;                       
+ 293   8                                    }         
+ 294   7                               }
+ 295   6                                                                                      }
+ 296   5                                                  }  
+ 297   4                   show(3,0,table);
+ 298   4                   show(2,1,table1);                                    
+ 299   4                                              }                                               
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 6   
+
+ 300   3                               }      
+ 301   2               }     
+ 302   1      }
+ 303          
+ 304          /*==========================================================   
+ 305           *函数名称：ling()
+ 306           *功    能：开启闹铃
+ 307           *入口参数：
+ 308           *出口参数：
+ 309           *说    明：按键4控制
+ 310           *==========================================================*/
+ 311          void ling()
+ 312          {       
+ 313   1          if(key4==0)
+ 314   1                      {                                  
+ 315   2                        delayms(10);
+ 316   2                        if(key4==0)
+ 317   2                              {  
+ 318   3                          z=~z ;
+ 319   3                          di++;               
+ 320   3                          if(di==1)
+ 321   3                                              show(15,0,clock2);
+ 322   3                          else if(di==2)
+ 323   3                          {
+ 324   4                            di=0;     
+ 325   4                            initlcd();  
+ 326   4                          }
+ 327   3                          while(!key4);
+ 328   3                              }
+ 329   2                      }
+ 330   1                      
+ 331   1                if((fen==fena)&&(shi==shia))
+ 332   1                      if((ri==ria)&&(yue==yuea))
+ 333   1                      {
+ 334   2                                      if(z>=1)
+ 335   2                                      {               
+ 336   3                                              TR1 = 1;
+ 337   3                  delayms(100);
+ 338   3                                              TR1 = 0;
+ 339   3                                              delayms(100); 
+ 340   3                    }
+ 341   2            }
+ 342   1                      else
+ 343   1                              TR1=0;     
+ 344   1      }
+ 345          
+ 346          /*==========================================================   
+ 347           *函数名称：delayms(unsigned int xms)
+ 348           *功    能：延时
+ 349           *入口参数：
+ 350           *出口参数：
+ 351           *说    明：
+ 352           *==========================================================*/
+ 353          void delayms(unsigned int xms)
+ 354          {
+ 355   1          unsigned int i,j;
+ 356   1                      for(i=xms;i>0;i--)
+ 357   1                              for(j=110;j>0;j--);
+ 358   1      }
+ 359          
+ 360          /*==========================================================   
+ 361           *函数名称：count()
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 7   
+
+ 362           *功    能：计算时间
+ 363           *入口参数：
+ 364           *出口参数：
+ 365           *说    明：秒大于60就清0进一分，分大于60就清0进一时......
+ 366           *==========================================================*/
+ 367          void count()
+ 368          {
+ 369   1              if(miao>=60)
+ 370   1              {
+ 371   2                      fen++;
+ 372   2                      miao=0;
+ 373   2                      if(fen>=60)
+ 374   2                      {
+ 375   3                              shi++;
+ 376   3                              fen=0;
+ 377   3                              if(shi>=24)
+ 378   3                              {
+ 379   4                                      ri++;
+ 380   4                                shi=0;
+ 381   4                          if(ri>=29)
+ 382   4                                      {       
+ 383   5                                        if (!((nian%400==0)||((nian%100!=0)&&(nian%4==0)))&&(yue==2)) 
+ 384   5                                              {
+ 385   6                                                      ri=1;
+ 386   6                                    yue++;     
+ 387   6                                              }
+ 388   5                                              else if((ri>=30)&&(yue==2))
+ 389   5                                              {    
+ 390   6                                                      ri=1;
+ 391   6                                          yue++;  
+ 392   6                                              }                       
+ 393   5                                              else if(ri>=31)
+ 394   5                                              {
+ 395   6                                                      if(yue==4||yue==6||yue==9||yue==11)
+ 396   6                                                      {
+ 397   7                                                              yue++;
+ 398   7                                                              ri=1;
+ 399   7                                                      }
+ 400   6                                                      else if(ri>=32)
+ 401   6                                                      {
+ 402   7                                                              yue++;
+ 403   7                                                              ri=1;
+ 404   7                                                      }
+ 405   6                                                      if(yue>=13) 
+ 406   6                                                      {
+ 407   7                                                              nian++;
+ 408   7                                                              yue=1;
+ 409   7                                                      }
+ 410   6                                        }
+ 411   5                                      }  
+ 412   4                              }       
+ 413   3                      }
+ 414   2              }
+ 415   1      }
+ 416          
+ 417          /*==========================================================   
+ 418           *函数名称：play()
+ 419           *功    能：计算1602要显示的时间
+ 420           *入口参数：
+ 421           *出口参数：
+ 422           *说    明：
+ 423           *==========================================================*/
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 8   
+
+ 424          void play()
+ 425          {
+ 426   1              table1[7]=time[miao%10];
+ 427   1              table1[6]=time[miao/10];
+ 428   1              table1[4]=time[fen%10];
+ 429   1              table1[3]=time[fen/10];
+ 430   1              table1[1]=time[shi%10];
+ 431   1              table1[0]=time[shi/10];
+ 432   1              table[9]=time[ri%10];
+ 433   1              table[8]=time[ri/10];
+ 434   1              table[6]=time[yue%10];
+ 435   1              table[5]=time[yue/10];
+ 436   1              table[3]=time[nian%10];
+ 437   1              table[2]=time[nian%100/10];
+ 438   1              table[1]=time[nian/100%10];
+ 439   1              table[0]=time[nian/1000];
+ 440   1      
+ 441   1      }
+ 442          
+ 443          
+ 444          void waitready()          //检查lcd是否在忙
+ 445          {       
+ 446   1                      unsigned char sta;
+ 447   1                      lcd= 0xff;  
+ 448   1                      rs=0;
+ 449   1                      rw=1;
+ 450   1                do
+ 451   1          {
+ 452   2                      e=1;
+ 453   2                      sta=lcd;
+ 454   2                      e=0;
+ 455   2                      }
+ 456   1                      while (sta&0x80);  
+ 457   1      }
+ 458          
+ 459          
+ 460          void writecmd(unsigned char cmd)                        //输入指令
+ 461          { 
+ 462   1                      waitready();
+ 463   1                      rs=0;
+ 464   1                      rw=0;
+ 465   1                      lcd=cmd;
+ 466   1                      e=1;
+ 467   1                      e=0;  
+ 468   1      }
+ 469          
+ 470          
+ 471          void writedat(unsigned char dat)                 //输入数据
+ 472          {
+ 473   1                      waitready();
+ 474   1                      rs=1;
+ 475   1                      rw=0;
+ 476   1                      lcd=dat;
+ 477   1                      e=1;
+ 478   1                      e=0;
+ 479   1      }
+ 480          
+ 481          void set(unsigned char x,unsigned char y)          //确定显示在lcd的哪个位置
+ 482          {
+ 483   1                      unsigned char addr;
+ 484   1                      if(y==0)   
+ 485   1                              addr=0x00+x;  
+C51 COMPILER V9.54   LCD                                                                   09/17/2016 19:47:15 PAGE 9   
+
+ 486   1                      else               
+ 487   1                              addr=0x40+x;    
+ 488   1                              writecmd(addr|0x80);
+ 489   1      }
+ 490          
+ 491          void show(unsigned char x,unsigned char y,unsigned char *table)
+ 492          {
+ 493   1          set(x,y);
+ 494   1          while(*table!='\0')
+ 495   1                      {
+ 496   2           writedat(*table++);             
+ 497   2                      }       
+ 498   1      }
+ 499          
+ 500          
+ 501          void initlcd()     //初始化
+ 502          {
+ 503   1           writecmd(0x38);
+ 504   1           writecmd(0x0c);
+ 505   1           writecmd(0x06);
+ 506   1           writecmd(0x01);
+ 507   1      }        
+ 508          
+ 509           void InterruptTimer() interrupt 1
+ 510          {  
+ 511   1         cnt++;
+ 512   1         TH0=(65536-50000)/256;
+ 513   1         TL0=(65536-50000)%256;
+ 514   1         if(cnt>20)
+ 515   1              {
+ 516   2               miao++;
+ 517   2               cnt=0;
+ 518   2        }
+ 519   1      }
+ 520          
+ 521          void buzzIntr() interrupt 3
+ 522          {
+ 523   1              TH1 = 0xfb;
+ 524   1              TL1 = 0x90;
+ 525   1              buzz = ~buzz;
+ 526   1      }
+ 527             
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1896    ----
+   CONSTANT SIZE    =     19    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     49       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

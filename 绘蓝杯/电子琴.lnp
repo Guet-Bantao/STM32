@@ -1,0 +1,4 @@
+"STARTUP.obj",
+"电子琴.obj" 
+TO "电子琴" 
+RAMSIZE(256) 

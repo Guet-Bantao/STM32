@@ -1,0 +1,560 @@
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 1   
+
+
+C51 COMPILER V9.01, COMPILATION OF MODULE 电子琴
+OBJECT MODULE PLACED IN 电子琴.OBJ
+COMPILER INVOKED BY: D:\单片机\keil\C51\BIN\C51.EXE 电子琴.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /******************************
+   2          *       作品：1602简易时钟                *
+   3          *   2015年12月2日15:41:10         *
+   4          *       桂林电子科技大学              *
+   5          *       程序员：风筝                      *
+   6          *       11月27日到12月2日                 *
+   7          *   历时6天        ^_^                    *
+   8          ******************************/
+   9          
+  10          #include<reg52.h>
+  11          #define lcd P0
+  12          
+  13          sbit rs=P2^6 ;
+  14          sbit rw=P2^5 ;
+  15          sbit e=P2^7      ;
+  16          sbit buzz=P1^5;
+  17          sbit key1=P3^1;
+  18          sbit key2=P3^0;
+  19          sbit key3=P3^2;
+  20          sbit key4=P3^3;
+  21          
+  22          void writecmd(unsigned char cmd);
+  23          void set(unsigned char x,unsigned char y);
+  24          void key();
+  25          void initlcd();
+  26          void count();
+  27          void play();
+  28          void delayms(unsigned int xms);
+  29          void show(unsigned char x,unsigned char y,unsigned char *table);
+  30          void ling();
+  31          
+  32          unsigned char b=0;
+  33          unsigned char c=0;
+  34          unsigned char cnt=0;
+  35          unsigned char k=0;
+  36          unsigned char z=0;
+  37          unsigned char di=0;
+  38          unsigned char table[]="2016-02-28";
+  39          unsigned char table1[]="23-58-56";
+  40          unsigned char code time[]="0123456789" ;
+  41          unsigned char code clock[]="clock";
+  42          unsigned char clock1[]="02-28|23-59"; 
+  43          unsigned char code clock2[]="@"; 
+  44          unsigned char miao=56;
+  45          unsigned char fen=58;
+  46          unsigned char shi=23;
+  47          unsigned char ri=28;
+  48          unsigned char yue=2;
+  49          unsigned int nian=2016;
+  50          unsigned char fena=59;
+  51          unsigned char shia=23;
+  52          unsigned char yuea=2;
+  53          unsigned char ria=28;
+  54          unsigned char code T[49][2]={{0,0},
+  55          {0xF8,0x8B},{0xF8,0xF2},{0xF9,0x5B},{0xF9,0xB7},{0xFA,0x14},{0xFA,0x66},{0xFA,0xB9},{0xFB,0x03},{0xFB,0x4A
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 2   
+
+             -},{0xFB,0x8F},{0xFB,0xCF},{0xFC,0x0B},
+  56          {0xFC,0x43},{0xFC,0x78},{0xFC,0xAB},{0xFC,0xDB},{0xFD,0x08},{0xFD,0x33},{0xFD,0x5B},{0xFD,0x81},{0xFD,0xA5
+             -},{0xFD,0xC7},{0xFD,0xE7},{0xFE,0x05},
+  57          {0xFE,0x21},{0xFE,0x3C},{0xFE,0x55},{0xFE,0x6D},{0xFE,0x84},{0xFE,0x99},{0xFE,0xAD},{0xFE,0xC0},{0xFE,0x02
+             -},{0xFE,0xE3},{0xFE,0xF3},{0xFF,0x02},
+  58          {0xFF,0x10},{0xFF,0x1D},{0xFF,0x2A},{0xFF,0x36},{0xFF,0x42},{0xFF,0x4C},{0xFF,0x56},{0xFF,0x60},{0xFF,0x69
+             -},{0xFF,0x71},{0xFF,0x79},{0xFF,0x81}
+  59          };
+  60          unsigned char music[35][2]={{0,4}} ;
+  61          
+  62          void main()
+  63          {  
+  64   1              TMOD=0x01;
+  65   1              EA=1;
+  66   1              TH0=(65536-50000)/256;
+  67   1              TL0=(65536-50000)%256;
+  68   1              ET0=1;
+  69   1              TR0=1;
+  70   1              TH1 = 0xfb;
+  71   1              TL1 = 0x90;
+  72   1              ET1=1;
+  73   1              initlcd();
+  74   1        
+  75   1      while(1){ 
+  76   2              ling();
+  77   2              count();
+  78   2                  play();
+  79   2                      show(3,0,table);
+  80   2              show(2,1,table1);
+  81   2                  key();                
+  82   2                      }
+  83   1      }
+  84          
+  85          
+  86          void key()
+  87          {
+  88   1      
+  89   1          if(key1==0)
+  90   1              {
+  91   2                delayms(10);
+  92   2      
+  93   2                      if(key1==0)
+  94   2                      {
+  95   3                        k++; 
+  96   3                        c++;
+  97   3      
+  98   3                         while(!key1);
+  99   3                       
+ 100   3                               TR0=0;
+ 101   3      
+ 102   3                             while (c==1)  
+ 103   3                                 {
+ 104   4                                    if(key1==0)
+ 105   4                                   delayms(10);
+ 106   4                                   
+ 107   4                                               if(key1==0)     
+ 108   4                                               { 
+ 109   5                                                 k++ ;
+ 110   5                                                   while(!key1);              
+ 111   5                                                                     }
+ 112   4      
+ 113   4      
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 3   
+
+ 114   4                      switch(k){
+ 115   5                      case 1:   set(9,1); writecmd(0x0f);break;
+ 116   5                      case 2:   set(6,1);                break;
+ 117   5                      case 3:   set(3,1);                break;
+ 118   5                      case 4:   set(12,0);               break;
+ 119   5                      case 5:   set(9,0);                break;
+ 120   5                      case 6:   set(6,0);                break;
+ 121   5                      case 7:   TR0=1; b=1;initlcd();show(11,0,clock);show(2,1,clock1);k=9;break;
+ 122   5                      case 8:   k=0;c=0;TR0=1;writecmd(0x0c);initlcd(); break;
+ 123   5                      }
+ 124   4             
+ 125   4                 while(k==9)
+ 126   4                 {            //之前这个写if的，改了
+ 127   5                    if(key1==0){
+ 128   6                        delayms(10);
+ 129   6      
+ 130   6                          if(key1==0)
+ 131   6                              {
+ 132   7                            if(b==4) 
+ 133   7                            k=8;
+ 134   7                      
+ 135   7                               while(!key1);b++;      
+ 136   7                                                          }
+ 137   6                                                                                 }
+ 138   5                       switch(b){     
+ 139   6                   case 1:      set(12,1); writecmd(0x0f);break;
+ 140   6                       case 2:          set(9,1);                 break;
+ 141   6                       case 3:          set(6,1);                 break;
+ 142   6                   case 4:      set(3,1);                 break;
+ 143   6                        }
+ 144   5      
+ 145   5                      if(key2==0)                     //按键加
+ 146   5                      {
+ 147   6                              delayms(10);
+ 148   6                                      if(key2==0)
+ 149   6                                      {
+ 150   7                                              while(!key2);             //松手检测
+ 151   7                                              
+ 152   7                              
+ 153   7          switch(b){
+ 154   8                      case 1:         fena++;
+ 155   8                                                      if(fena>=60)
+ 156   8                                                              fena=0;
+ 157   8                                                              clock1[10]=time[fena%10];
+ 158   8                                  clock1[9]=time[fena/10];  break;
+ 159   8      
+ 160   8                      case 2:         shia++;
+ 161   8                                                      if(shia>=24)
+ 162   8                                                              shia=0;
+ 163   8                                                              clock1[7]=time[shia%10];
+ 164   8                                  clock1[6]=time[shia/10];  break;
+ 165   8      
+ 166   8                      case 3:         ria++;
+ 167   8                                                      if(ria>=32)
+ 168   8                                                              ria=0;
+ 169   8                                                              clock1[4]=time[ria%10];
+ 170   8                                  clock1[3]=time[ria/10];  break;
+ 171   8      
+ 172   8                      case 4:         yuea++;
+ 173   8                                                      if(yuea>=13)
+ 174   8                                                              yuea=0;
+ 175   8                                                              clock1[1]=time[yuea%10];
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 4   
+
+ 176   8                                  clock1[0]=time[yuea/10];  break;
+ 177   8                                                                      }       
+ 178   7                                                                              }          
+ 179   6                                                                                  }
+ 180   5                 
+ 181   5                      if(key3==0)                     //按键减
+ 182   5                              {
+ 183   6                                      delayms(10);
+ 184   6                                      if(key3==0)
+ 185   6                                      {
+ 186   7                                              while(!key3);             //松手检测
+ 187   7                                              
+ 188   7                              
+ 189   7          switch(b){
+ 190   8                      case 1:         fena--;
+ 191   8                                                      if(fena==-1)
+ 192   8                                                              fena=59;
+ 193   8                                                              clock1[10]=time[fena%10];
+ 194   8                                  clock1[9]=time[fena/10];  break;
+ 195   8      
+ 196   8                      case 2:         shia--;
+ 197   8                                                      if(shia==-1)
+ 198   8                                                              shia=23;
+ 199   8                                                              clock1[7]=time[shia%10];
+ 200   8                                  clock1[6]=time[shia/10];  break;
+ 201   8      
+ 202   8                      case 3:         ria--;
+ 203   8                                                      if(ria==0)
+ 204   8                                                              ria=31;
+ 205   8                                                              clock1[4]=time[ria%10];
+ 206   8                                  clock1[3]=time[ria/10];  break;
+ 207   8      
+ 208   8                      case 4:         yuea--;
+ 209   8                                                      if(yuea==0)
+ 210   8                                                              yuea=12;
+ 211   8                                                              clock1[1]=time[yuea%10];
+ 212   8                                  clock1[0]=time[yuea/10];  break;
+ 213   8                                                                       }      
+ 214   7                                                                          }
+ 215   6                                                                            }    
+ 216   5                                              show(2,1,clock1);                       }                
+ 217   4                 
+ 218   4                              
+ 219   4                      if(k!=0)
+ 220   4                      {
+ 221   5                              if(key2==0)                     //按键加
+ 222   5                              {
+ 223   6                                      delayms(10);
+ 224   6                                      if(key2==0)
+ 225   6                                      {
+ 226   7                                              while(!key2);             //松手检测
+ 227   7                                              
+ 228   7                              
+ 229   7              switch(k){
+ 230   8                      case 1:         miao++;
+ 231   8                                                      if(miao==60)
+ 232   8                                                              miao=0;
+ 233   8                                                              table1[7]=time[miao%10];
+ 234   8                                  table1[6]=time[miao/10];  break;
+ 235   8                      case 2:         fen++;
+ 236   8                                                      if(fen==60)
+ 237   8                                                              fen=0;
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 5   
+
+ 238   8                                                              table1[4]=time[fen%10];
+ 239   8                                      table1[3]=time[fen/10];
+ 240   8                                                                                        break;
+ 241   8                      case 3:         shi++;
+ 242   8                                                      if(shi==24)
+ 243   8                                                              shi=0;
+ 244   8                                                              table1[1]=time[shi%10];
+ 245   8                                      table1[0]=time[shi/10];   break;
+ 246   8                      case 4:  ri++;
+ 247   8                                                      if(ri==32)
+ 248   8                                                              ri=0;
+ 249   8                                                              table[9]=time[ri%10];
+ 250   8                                      table[8]=time[ri/10];     break;
+ 251   8                      case 5:  yue++;
+ 252   8                                                      if(yue==12)
+ 253   8                                                              yue=0;
+ 254   8                                                      table[6]=time[yue%10];
+ 255   8                                      table[5]=time[yue/10];    break;
+ 256   8                      case 6:  nian++;
+ 257   8                                                      table[3]=time[nian%10];
+ 258   8                                      table[2]=time[nian%100/10];
+ 259   8                                      table[1]=time[nian/100%10];
+ 260   8                                      table[0]=time[nian/1000];  break;
+ 261   8      
+ 262   8                               }              
+ 263   7                                      }
+ 264   6                                         }
+ 265   5      
+ 266   5                      else  if(key3==0)                       //按键减
+ 267   5                              {
+ 268   6                                      delayms(10);
+ 269   6                                      if(key3==0)
+ 270   6                                      {
+ 271   7                                              while(!key3);      //松手检测
+ 272   7                                              
+ 273   7                              
+ 274   7              switch(k){
+ 275   8                      case 1:         miao--;
+ 276   8                                                      if(miao==-1)
+ 277   8                                                              miao=59;
+ 278   8                                                              table1[7]=time[miao%10];
+ 279   8                                  table1[6]=time[miao/10];  break;
+ 280   8                      case 2:         fen--;
+ 281   8                                                      if(fen==-1)
+ 282   8                                                              fen=59;
+ 283   8                                                              table1[4]=time[fen%10];
+ 284   8                                      table1[3]=time[fen/10];
+ 285   8                                                                                        break;
+ 286   8                      case 3:         shi--;
+ 287   8                                                      if(shi==-1)
+ 288   8                                                              shi=23;
+ 289   8                                                              table1[1]=time[shi%10];
+ 290   8                                      table1[0]=time[shi/10];   break;
+ 291   8                      case 4:  ri--;
+ 292   8                                                      if(ri==0)
+ 293   8                                                              ri=31;
+ 294   8                                                              table[9]=time[ri%10];
+ 295   8                                      table[8]=time[ri/10];     break;
+ 296   8                      case 5:  yue--;
+ 297   8                                                      if(yue==0)
+ 298   8                                                              yue=12;
+ 299   8                                                      table[6]=time[yue%10];
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 6   
+
+ 300   8                                      table[5]=time[yue/10];    break;
+ 301   8                      case 6:  nian--;
+ 302   8                                                      table[3]=time[nian%10];
+ 303   8                                      table[2]=time[nian%100/10];
+ 304   8                                      table[1]=time[nian/100%10];
+ 305   8                                      table[0]=time[nian/1000];  break;                       
+ 306   8                                                                               }              
+ 307   7                                                                                      }
+ 308   6                                                                                         }
+ 309   5                                                                                                }  
+ 310   4                                  show(3,0,table);
+ 311   4                                  show(2,1,table1);                                     
+ 312   4                                                                                      }                                               
+ 313   3                                                                            } 
+ 314   2                                                                                                          }     
+ 315   1                                                                                                                }
+ 316          
+ 317          
+ 318          void ling()
+ 319          {  
+ 320   1              if(key4==0)
+ 321   1                      {                                  
+ 322   2                        delayms(10);
+ 323   2      
+ 324   2                          if(key4==0)
+ 325   2                              {  
+ 326   3                            z=~z ;
+ 327   3                            di++;
+ 328   3                      
+ 329   3                              if(di==1)
+ 330   3      
+ 331   3                                        show(15,0,clock2);
+ 332   3      
+ 333   3                                  else if(di==2)
+ 334   3                                  {
+ 335   4                                    di=0;     
+ 336   4                                    initlcd();  
+ 337   4                                                      }
+ 338   3                                       while(!key4);
+ 339   3                                                                         }
+ 340   2                                                             }
+ 341   1                      
+ 342   1                  if((fen==fena)&&(shi==shia))
+ 343   1                      if((ri==ria)&&(yue==yuea))
+ 344   1                      {
+ 345   2      
+ 346   2                        if(z>=1)
+ 347   2                        {
+ 348   3                      
+ 349   3                           TR1 = 1;
+ 350   3                   delayms(100);
+ 351   3                           TR1 = 0;
+ 352   3                           delayms(100); 
+ 353   3                                      }
+ 354   2                                     }
+ 355   1      
+ 356   1                              else
+ 357   1                                   TR1=0;        
+ 358   1      }
+ 359          
+ 360          void delayms(unsigned int xms)
+ 361          {
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 7   
+
+ 362   1              unsigned int i,j;
+ 363   1                      for(i=xms;i>0;i--)
+ 364   1                          for(j=110;j>0;j--);
+ 365   1      }
+ 366          
+ 367          void count()
+ 368          {
+ 369   1              if(miao>=60)
+ 370   1              {
+ 371   2                      fen++;
+ 372   2                      miao=0;
+ 373   2                      if(fen>=60)
+ 374   2                      {
+ 375   3                              shi++;
+ 376   3                              fen=0;
+ 377   3                              if(shi>=24)
+ 378   3                              {
+ 379   4                                      ri++;
+ 380   4                                  shi=0;
+ 381   4      
+ 382   4                              if(ri>=29){     
+ 383   5      
+ 384   5                                         if (!((nian%400==0)||((nian%100!=0)&&(nian%4==0)))&&(yue==2))        {
+ 385   6                                      
+ 386   6                                            ri=1;
+ 387   6                                        yue++;     
+ 388   6                                                                 }
+ 389   5                                      else if((ri>=30)&&(yue==2)){
+ 390   6                                                
+ 391   6                                                        ri=1;
+ 392   6                                                yue++;  
+ 393   6                                                                       }
+ 394   5                              
+ 395   5                                      else if(ri>=31)
+ 396   5                                      {
+ 397   6                                              if(yue==4||yue==6||yue==9||yue==11)
+ 398   6                                              {
+ 399   7                                                      yue++;ri=1;
+ 400   7                                              }
+ 401   6                                              else if(ri>=32)
+ 402   6                                              {
+ 403   7                                                      yue++;ri=1;
+ 404   7                                              }
+ 405   6                                              if(yue>=13) {nian++;yue=1;}
+ 406   6                                          }
+ 407   5                                      }  
+ 408   4                              }       
+ 409   3                      }
+ 410   2              }
+ 411   1      }
+ 412          
+ 413          
+ 414          void play()
+ 415          {
+ 416   1              table1[7]=time[miao%10];
+ 417   1              table1[6]=time[miao/10];
+ 418   1              table1[4]=time[fen%10];
+ 419   1              table1[3]=time[fen/10];
+ 420   1              table1[1]=time[shi%10];
+ 421   1              table1[0]=time[shi/10];
+ 422   1              table[9]=time[ri%10];
+ 423   1              table[8]=time[ri/10];
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 8   
+
+ 424   1              table[6]=time[yue%10];
+ 425   1              table[5]=time[yue/10];
+ 426   1              table[3]=time[nian%10];
+ 427   1              table[2]=time[nian%100/10];
+ 428   1              table[1]=time[nian/100%10];
+ 429   1              table[0]=time[nian/1000];
+ 430   1      
+ 431   1      }
+ 432          
+ 433          
+ 434          void waitready()          //检查lcd是否在忙
+ 435          {       
+ 436   1              unsigned char sta;
+ 437   1              lcd= 0xff;  
+ 438   1              rs=0;
+ 439   1              rw=1;
+ 440   1      do
+ 441   1      {
+ 442   2              e=1;
+ 443   2              sta=lcd;
+ 444   2              e=0;
+ 445   2                           }
+ 446   1      while (sta&0x80);  
+ 447   1      }
+ 448          
+ 449          
+ 450          void writecmd(unsigned char cmd)                        //输入指令
+ 451          { 
+ 452   1             waitready();
+ 453   1             rs=0;
+ 454   1             rw=0;
+ 455   1             lcd=cmd;
+ 456   1             e=1;
+ 457   1             e=0;  
+ 458   1      }
+ 459          
+ 460          
+ 461          void writedat(unsigned char dat)                 //输入数据
+ 462          {
+ 463   1             waitready();
+ 464   1             rs=1;
+ 465   1             rw=0;
+ 466   1             lcd=dat;
+ 467   1             e=1;
+ 468   1             e=0;
+ 469   1      }
+ 470          
+ 471          void set(unsigned char x,unsigned char y)          //确定显示在lcd的哪个位置
+ 472          {
+ 473   1             unsigned char addr;
+ 474   1             if(y==0)   
+ 475   1                  addr=0x00+x;  
+ 476   1             else                
+ 477   1                  addr=0x40+x;        
+ 478   1                  writecmd(addr|0x80);
+ 479   1      }
+ 480          
+ 481          void show(unsigned char x,unsigned char y,unsigned char *table)
+ 482          {
+ 483   1           set(x,y);
+ 484   1           while(*table!='\0')
+ 485   1      {
+C51 COMPILER V9.01   电子琴                                                                12/08/2015 18:28:45 PAGE 9   
+
+ 486   2           writedat(*table++);
+ 487   2                     
+ 488   2        }     
+ 489   1      }
+ 490          
+ 491          
+ 492          void initlcd()     //初始化
+ 493          {
+ 494   1           writecmd(0x38);
+ 495   1           writecmd(0x0c);
+ 496   1           writecmd(0x06);
+ 497   1           writecmd(0x01);
+ 498   1      }        
+ 499          
+ 500           void InterruptTimer() interrupt 1
+ 501          {  
+ 502   1         cnt++;
+ 503   1         TH0=(65536-50000)/256;
+ 504   1         TL0=(65536-50000)%256;
+ 505   1               if(cnt>20){
+ 506   2               miao++;
+ 507   2               cnt=0;
+ 508   2        }
+ 509   1      }
+ 510          
+ 511          void buzzIntr() interrupt 3
+ 512          {
+ 513   1              TH1 = 0xfb;
+ 514   1              TL1 = 0x90;
+ 515   1              buzz = ~buzz;
+ 516   1      }
+ 517             
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1896    ----
+   CONSTANT SIZE    =    117    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =    119       3
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
